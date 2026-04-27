@@ -14,11 +14,20 @@ const server = http.createServer(app)
 const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
-      // Allow any localhost/127.0.0.1 origin or no origin (mobile apps/tools)
+      console.log(`🔗 Incoming socket connection from origin: ${origin || 'none'}`)
       const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : []
-      if (!origin || /^(https?:\/\/)?(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin) || allowedOrigins.includes(origin)) {
+      
+      // Allow localhost, mobile apps (no origin), specific env origins, wildcard (*), and Vercel subdomains
+      if (
+        !origin || 
+        /^(https?:\/\/)?(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin) || 
+        /\.vercel\.app$/.test(origin) ||
+        allowedOrigins.includes(origin) ||
+        allowedOrigins.includes('*')
+      ) {
         callback(null, true)
       } else {
+        console.error(`❌ CORS blocked connection from origin: ${origin}`)
         callback(new Error('Not allowed by CORS'))
       }
     },
