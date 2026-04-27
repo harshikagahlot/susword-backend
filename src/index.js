@@ -95,7 +95,12 @@ io.on('connection', (socket) => {
 
     room.players.forEach(player => {
       const revealData = getPlayerRevealData(room, player.id)
-      io.to(player.id).emit('game-started', revealData)
+      if (revealData) {
+        io.to(player.id).emit('game-started', revealData)
+        console.log(`📤 Sent game-started to ${player.name} (${player.id})`)
+      } else {
+        console.log(`⚠️ Missing reveal data for ${player.name} (${player.id})`)
+      }
     })
   })
 
