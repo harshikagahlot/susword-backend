@@ -113,23 +113,36 @@ function submitClue(room, socketId, clueText) {
   if (!rd) return { error: 'No round data' }
   if (room.gameState !== 'CLUE_ROUND') return { error: 'Not in clue round' }
 
-  const currentPlayerId = rd.turnOrder[rd.currentTurnIdx]
-  if (socketId !== currentPlayerId) return { error: 'Not your turn' }
   if (rd.clues.some(c => c.playerId === socketId)) return { error: 'Already submitted' }
 
   const trimmed = clueText?.trim()
   if (!trimmed) return { error: 'Clue cannot be empty' }
 
   const player = room.players.find(p => p.id === socketId)
-  rd.clues.push({ playerId: socketId, playerName: player?.name || 'Unknown', clue: trimmed })
+  if (!player) return { error: 'Player not found in room' }
 
-  rd.currentTurnIdx++
-  if (rd.currentTurnIdx >= rd.turnOrder.length) {
+  rd.clues.push({ playerId: socketId, playerName: player.name, clue: trimmed })
+
+  if (rd.clues.length >= room.players.length) {
     rd.clueRoundComplete = true
-    room.gameState = 'VOTING'
+    room.gameState = 'CLUE_REVEAL'
   }
 
   return { success: true, clueRoundComplete: rd.clueRoundComplete }
+}
+
+function forceCompleteClueRound(room) {
+  const rd = room.roundData
+  if (!rd) return
+  
+  room.players.forEach(p => {
+    if (!rd.clues.some(c => c.playerId === p.id)) {
+      rd.clues.push({ playerId: p.id, playerName: p.name, clue: '' })
+    }
+  })
+  
+  rd.clueRoundComplete = true
+  room.gameState = 'CLUE_REVEAL'
 }
 
 function getClueRoundState(room) {
@@ -138,9 +151,10 @@ function getClueRoundState(room) {
 
   return {
     gameState: room.gameState,
-    turnOrder: rd.turnOrder,
-    currentTurnIdx: rd.currentTurnIdx,
-    currentTurnPlayerId: rd.clueRoundComplete ? null : rd.turnOrder[rd.currentTurnIdx],
+    clueEndTime: rd.clueEndTime,
+    submittedCount: rd.clues.length,
+    totalCount: room.players.length,
+    submittedPlayerIds: rd.clues.map(c => c.playerId),
     clues: rd.clues,
     clueRoundComplete: rd.clueRoundComplete,
     players: room.players.map(p => ({ id: p.id, name: p.name, isHost: p.id === room.hostId })),
@@ -151,15 +165,12 @@ function handleClueDisconnect(room, disconnectedId) {
   const rd = room.roundData
   if (!rd || room.gameState !== 'CLUE_ROUND') return false
 
-  const idx = rd.turnOrder.indexOf(disconnectedId)
-  if (idx !== -1) {
-    rd.turnOrder.splice(idx, 1)
-    if (idx < rd.currentTurnIdx) rd.currentTurnIdx--
-  }
-
-  if (rd.currentTurnIdx >= rd.turnOrder.length) {
+  // If a player disconnects, check if we should auto-complete the round
+  // because the missing player's submission is no longer needed to reach 100%
+  // Or force empty clue immediately. For simplicity, just check completion.
+  if (rd.clues.length >= room.players.length) {
     rd.clueRoundComplete = true
-    room.gameState = 'VOTING'
+    room.gameState = 'CLUE_REVEAL'
   }
   return true
 }
@@ -276,6 +287,7 @@ module.exports = {
   getPlayerRevealData,
   setPlayerReady,
   submitClue,
+  forceCompleteClueRound,
   getClueRoundState,
   handleClueDisconnect,
   submitVote,
