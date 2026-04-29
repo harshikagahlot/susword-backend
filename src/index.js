@@ -290,22 +290,15 @@ function handleDisconnect(socket) {
       room.roundData.readyPlayers = room.roundData.readyPlayers.filter(id => id !== socket.id)
     }
 
-    // Clean up during clue round (skip disconnected player's turn)
+    // Clean up during clue round
     if (room.gameState === 'CLUE_ROUND' && room.roundData) {
       handleClueDisconnect(room, socket.id)
       const clueState = getClueRoundState(room)
       io.to(roomCode).emit('clue-round-update', clueState)
 
       if (room.roundData.clueRoundComplete) {
-        io.to(roomCode).emit('clue-round-complete', {
-          gameState: 'VOTING',
-          clues: room.roundData.clues,
-          players: room.players.map(p => ({
-            id: p.id,
-            name: p.name,
-            isHost: p.id === room.hostId,
-          })),
-        })
+        clearTimeout(room.roundData.clueTimer);
+        io.to(roomCode).emit('clue-reveal-started', clueState)
       }
     }
 
