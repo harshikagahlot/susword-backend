@@ -4,35 +4,42 @@
  * Keeps round data on the room object in memory.
  */
 
-// ── Word pairs (small inline list for MVP) ─────────────────
-const WORD_PAIRS = [
-  { mainWord: 'Pizza', imposterWord: 'Burger', category: 'Food' },
-  { mainWord: 'Doctor', imposterWord: 'Nurse', category: 'Jobs' },
-  { mainWord: 'Ocean', imposterWord: 'Beach', category: 'Places' },
-  { mainWord: 'Mango', imposterWord: 'Papaya', category: 'Food' },
-  { mainWord: 'Guitar', imposterWord: 'Ukulele', category: 'Objects' },
-  { mainWord: 'Dolphin', imposterWord: 'Whale', category: 'Animals' },
-  { mainWord: 'Coffee', imposterWord: 'Espresso', category: 'Food' },
-  { mainWord: 'Castle', imposterWord: 'Palace', category: 'Places' },
-  { mainWord: 'Thunder', imposterWord: 'Lightning', category: 'Nature' },
-  { mainWord: 'Painting', imposterWord: 'Drawing', category: 'Activities' },
-  { mainWord: 'Jacket', imposterWord: 'Coat', category: 'Clothing' },
-  { mainWord: 'Sunset', imposterWord: 'Sunrise', category: 'Nature' },
-  { mainWord: 'Soup', imposterWord: 'Stew', category: 'Food' },
-  { mainWord: 'Wolf', imposterWord: 'Fox', category: 'Animals' },
-  { mainWord: 'Lake', imposterWord: 'Pond', category: 'Places' },
-  { mainWord: 'Frog', imposterWord: 'Toad', category: 'Animals' },
-  { mainWord: 'Sword', imposterWord: 'Dagger', category: 'Objects' },
-  { mainWord: 'Jogging', imposterWord: 'Sprinting', category: 'Activities' },
-  { mainWord: 'Pancake', imposterWord: 'Waffle', category: 'Food' },
-  { mainWord: 'Hill', imposterWord: 'Mountain', category: 'Nature' },
-]
+const { WORD_PAIRS } = require('./wordPairs')
+
+// ── Fisher-Yates shuffle (returns a NEW shuffled array) ────
+function shuffleArray(arr) {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
+/**
+ * Initialise (or refill) the word pool for a room.
+ * Call once when the room is created and again when pool is exhausted.
+ */
+function refillWordPool(room) {
+  room.wordPool = shuffleArray(WORD_PAIRS)
+}
+
+/**
+ * Pick the next word pair from the room's pool.
+ * Automatically reshuffles if the pool is empty.
+ */
+function pickWordPair(room) {
+  if (!room.wordPool || room.wordPool.length === 0) {
+    refillWordPool(room)
+  }
+  return room.wordPool.shift()
+}
 
 /**
  * Start a new round for the given room.
  */
 function startRound(room) {
-  const wordPair = WORD_PAIRS[Math.floor(Math.random() * WORD_PAIRS.length)]
+  const wordPair = pickWordPair(room)
   const imposterIdx = Math.floor(Math.random() * room.players.length)
   const imposterId = room.players[imposterIdx].id
 
@@ -281,5 +288,6 @@ module.exports = {
   submitVote,
   resolveVotes,
   submitFinalGuess,
+  refillWordPool,
 }
 
