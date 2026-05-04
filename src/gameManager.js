@@ -86,6 +86,7 @@ function getPlayerRevealData(room, socketId) {
 
   return {
     word: rd.assignments[socketId].word,
+    isImposter: socketId === rd.imposterId,
     gameState: room.gameState,
     players: room.players.map(p => ({
       id: p.id,

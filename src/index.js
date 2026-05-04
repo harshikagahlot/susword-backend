@@ -93,7 +93,7 @@ io.on('connection', (socket) => {
 
     if (!room) return callback?.({ error: 'Room not found' })
     if (room.hostId !== socket.id) return callback?.({ error: 'Only the host can start' })
-    if (room.players.length < 3) return callback?.({ error: 'Need at least 3 players' })
+    // if (room.players.length < 3) return callback?.({ error: 'Need at least 3 players' })
     if (room.gameState !== 'LOBBY') return callback?.({ error: 'Game already in progress' })
 
     startRound(room)
